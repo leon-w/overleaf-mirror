@@ -1,0 +1,37 @@
+name: Sync
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  # Uncomment the next line to run this workflow every hour
+  # schedule:
+  #  - cron: "0 * * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete old files
+        run: |
+          find latex -mindepth 1 -not -name .gitkeep -delete
+      
+      - name: Download the project zip file and extract
+        shell: bash
+        env:
+          LATEX_SESSION_COOKIE: ${{ secrets.LATEX_SESSION_COOKIE }}
+          LATEX_PROJECT_ID: ${{ secrets.LATEX_PROJECT_ID }}
+        run: |
+          wget -q --header="cookie: overleaf_session2=$LATEX_SESSION_COOKIE" "https://overleaf.com/project/$LATEX_PROJECT_ID/download/zip" -O latex.zip
+          unzip -q latex.zip -d latex
+          rm latex.zip
+      
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: latex
+          commit_message: Sync latex project from overleaf.com
